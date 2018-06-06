@@ -1,7 +1,7 @@
 /*
  *  Udp.cpp: Library to send/receive UDP packets with the Arduino ethernet shield.
  *  This version only offers minimal wrapping of socket.c/socket.h
- *  Drop Udp.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/ 
+ *  Drop Udp.h/.cpp into the Ethernet library directory at hardware/libraries/Ethernet/
  *
  * MIT License:
  * Copyright (c) 2008 Bjoern Hartmann
@@ -11,10 +11,10 @@
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -67,7 +67,7 @@ uint8_t EthernetUDP::beginMulticast(IPAddress ip, uint16_t port)
 {
   if (_sock != MAX_SOCK_NUM)
     return 0;
-  
+
   for (int i = 0; i < MAX_SOCK_NUM; i++) {
     uint8_t s = w5500.readSnSR(i);
     if (s == SnSR::CLOSED || s == SnSR::FIN_WAIT) {
@@ -75,21 +75,21 @@ uint8_t EthernetUDP::beginMulticast(IPAddress ip, uint16_t port)
       break;
     }
   }
-  
+
   if (_sock == MAX_SOCK_NUM)
     return 0;
-  
+
   // Calculate MAC address from Multicast IP Address
   byte mac[] = {  0x01, 0x00, 0x5E, 0x00, 0x00, 0x00 };
-  
+
   mac[3] = ip[1] & 0x7F;
   mac[4] = ip[2];
   mac[5] = ip[3];
-  
+
   w5500.writeSnDIPR(_sock, rawIPAddress(ip));   //239.255.0.1
   w5500.writeSnDPORT(_sock, port);
   w5500.writeSnDHAR(_sock,mac);
-  
+
   _remaining = 0;
   socket(_sock, SnMR::UDP, port, SnMR::MULTI);
   return 1;
@@ -155,13 +155,18 @@ size_t EthernetUDP::write(const uint8_t *buffer, size_t size)
 int EthernetUDP::parsePacket()
 {
   // discard any remaining bytes in the last packet
-  flush();
+  //flush();
+
+  // ADDED 7/6/2018 mtongnz
+  // Flushes data without copying from w5500
+  w5500.recv_data_skip_data(_sock, _remaining);
+  w5500.execCmdSn(_sock, Sock_RECV);
 
   if (w5500.getRXReceivedSize(_sock) > 0)
   {
     //HACK - hand-parse the UDP packet using TCP recv method
     uint8_t tmpBuf[8];
-    int ret =0; 
+    int ret =0;
     //read 8 header bytes and get IP and port from it
     ret = recv(_sock,tmpBuf,8);
     if (ret > 0)
@@ -211,7 +216,7 @@ int EthernetUDP::read(uint8_t* buffer, size_t len)
     }
     else
     {
-      // too much data for the buffer, 
+      // too much data for the buffer,
       // grab as much as will fit
       got = recv(_sock, buffer, len);
     }
@@ -290,4 +295,3 @@ bool EthernetUDP::getUnicastBlock() {
   value = w5500.readSnMR(_sock);
   return bitRead(value, 4);
 }
-
