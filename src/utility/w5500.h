@@ -173,6 +173,13 @@ public:
    */
   void recv_data_processing(SOCKET s, uint8_t *data, uint16_t len, uint8_t peek = 0);
 
+  /**
+   * ADDED 7/6/2018 mtongnz
+   * This function will advance the pointer on the w5500 by len
+   * effectively allowing you to ignore a packet without copying it from the w5500
+   */
+  void recv_data_skip_data(SOCKET s, uint16_t len);
+
   inline void setGatewayIp(uint8_t *_addr);
   inline void getGatewayIp(uint8_t *_addr);
 
